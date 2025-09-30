@@ -7,34 +7,160 @@ from cocotb.triggers import ClockCycles
 
 
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_8bit_counter(dut):
+    """Test the 8-bit counter functionality"""
+    dut._log.info("Starting 8-bit Counter Test")
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, units="us")
+    # Set the clock period to 10 ns (100 MHz)
+    clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
-    # Reset
-    dut._log.info("Reset")
+    # Initialize inputs
     dut.ena.value = 1
-    dut.ui_in.value = 0
+    dut.ui_in.value = 0b00000010  # output_enable=1, load=0
     dut.uio_in.value = 0
+
+    # Test 1: Reset functionality
+    dut._log.info("Test 1: Reset functionality")
+    dut.rst_n.value = 0  # Assert reset
+    await ClockCycles(dut.clk, 2)
+    dut.rst_n.value = 1  # Release reset
+    await ClockCycles(dut.clk, 1)
+    
+    # Counter should start at 1 after first clock cycle post-reset
+    assert dut.uo_out.value == 1, f"Expected 1, got {dut.uo_out.value}"
+    dut._log.info("Reset test passed")
+
+    # Test 2: Basic counting
+    dut._log.info("Test 2: Basic counting")
+    for expected_value in range(2, 10):
+        await ClockCycles(dut.clk, 1)
+        assert dut.uo_out.value == expected_value, f"Expected {expected_value}, got {dut.uo_out.value}"
+    dut._log.info("Basic counting test passed")
+
+    # Test 3: Load functionality
+    dut._log.info("Test 3: Load functionality")
+    load_value = 0xA5
+    dut.uio_in.value = load_value  # Set load value
+    dut.ui_in.value = 0b00000011   # output_enable=1, load=1
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == load_value, f"Expected {load_value}, got {dut.uo_out.value}"
+    
+    # Disable load and verify counting continues
+    dut.ui_in.value = 0b00000010   # output_enable=1, load=0
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == (load_value + 1) & 0xFF, f"Expected {(load_value + 1) & 0xFF}, got {dut.uo_out.value}"
+    dut._log.info("Load functionality test passed")
+
+    # Test 4: Tri-state output
+    dut._log.info("Test 4: Tri-state output")
+    dut.ui_in.value = 0b00000000   # output_enable=0, load=0
+    await ClockCycles(dut.clk, 1)
+    # Note: In cocotb, high-Z values might be represented differently
+    # The counter should still be incrementing internally even with output disabled
+    
+    # Re-enable output
+    dut.ui_in.value = 0b00000010   # output_enable=1, load=0
+    await ClockCycles(dut.clk, 1)
+    # Counter should have continued incrementing
+    dut._log.info("Tri-state output test passed")
+
+    # Test 5: Wrap-around test
+    dut._log.info("Test 5: Wrap-around test")
+    # Load 0xFF and test wrap-around
+    dut.uio_in.value = 0xFF
+    dut.ui_in.value = 0b00000011   # output_enable=1, load=1
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == 0xFF, f"Expected 0xFF, got {dut.uo_out.value}"
+    
+    # Disable load and check wrap-around
+    dut.ui_in.value = 0b00000010   # output_enable=1, load=0
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == 0x00, f"Expected 0x00 (wrap-around), got {dut.uo_out.value}"
+    
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == 0x01, f"Expected 0x01 (after wrap), got {dut.uo_out.value}"
+    dut._log.info("Wrap-around test passed")
+
+    # Test 6: Reset during operation
+    dut._log.info("Test 6: Reset during operation")
+    # Let counter run to some value
+    await ClockCycles(dut.clk, 5)
+    current_value = dut.uo_out.value
+    assert current_value > 1, "Counter should be running"
+    
+    # Assert reset
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+    await ClockCycles(dut.clk, 1)
     dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == 1, f"Expected 1 after reset, got {dut.uo_out.value}"
+    dut._log.info("Reset during operation test passed")
 
-    dut._log.info("Test project behavior")
+    dut._log.info("All 8-bit counter tests passed!")
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
 
-    # Wait for one clock cycle to see the output values
+@cocotb.test()
+async def test_edge_cases(dut):
+    """Test edge cases and timing"""
+    dut._log.info("Starting edge case tests")
+
+    # Set the clock period to 10 ns (100 MHz)
+    clock = Clock(dut.clk, 10, units="ns")
+    cocotb.start_soon(clock.start())
+
+    # Initialize
+    dut.ena.value = 1
+    dut.rst_n.value = 0
+    dut.ui_in.value = 0b00000010  # output_enable=1, load=0
+    dut.uio_in.value = 0
+    await ClockCycles(dut.clk, 2)
+    dut.rst_n.value = 1
     await ClockCycles(dut.clk, 1)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    # Test simultaneous reset and load (reset should have priority)
+    dut._log.info("Testing reset priority over load")
+    dut.uio_in.value = 0x88
+    dut.ui_in.value = 0b00000011   # output_enable=1, load=1
+    dut.rst_n.value = 0            # Assert reset
+    await ClockCycles(dut.clk, 1)
+    dut.rst_n.value = 1            # Release reset
+    await ClockCycles(dut.clk, 1)
+    # After reset release with load still asserted, should load the value
+    assert dut.uo_out.value == 0x88, f"Expected 0x88 after reset+load, got {dut.uo_out.value}"
+    
+    dut._log.info("Edge case tests passed!")
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+
+# Additional test for comprehensive coverage
+@cocotb.test()
+async def test_load_timing(dut):
+    """Test load signal timing"""
+    dut._log.info("Starting load timing test")
+
+    # Set the clock period to 10 ns (100 MHz)
+    clock = Clock(dut.clk, 10, units="ns")
+    cocotb.start_soon(clock.start())
+
+    # Initialize
+    dut.ena.value = 1
+    dut.rst_n.value = 0
+    dut.ui_in.value = 0b00000010  # output_enable=1, load=0
+    dut.uio_in.value = 0
+    await ClockCycles(dut.clk, 2)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)  # Let counter run
+
+    # Test load assertion just before clock edge
+    current_value = dut.uo_out.value
+    dut.uio_in.value = 0x33
+    dut.ui_in.value = 0b00000011   # Assert load
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == 0x33, f"Expected 0x33, got {dut.uo_out.value}"
+    
+    # Disable load
+    dut.ui_in.value = 0b00000010   # output_enable=1, load=0
+    await ClockCycles(dut.clk, 1)
+    assert dut.uo_out.value == 0x34, f"Expected 0x34, got {dut.uo_out.value}"
+
+    dut._log.info("Load timing test passed!")

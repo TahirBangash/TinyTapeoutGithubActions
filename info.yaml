@@ -1,11 +1,11 @@
 # Tiny Tapeout project information
 project:
-  title:        "test proj"      # Project title
+  title:        "8-bit Counter"      # Project title
   author:       "tahir bangash"      # Your name
   discord:      "tah1rb"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "a trst project"      # One line description of what your project does
+  description:  "8-bit counter with asynchronous reset, synchronous load, and tri-state output"      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     0       # Clock frequency in Hz (or 0 if not applicable)
+  clock_hz:     100000000       # Clock frequency in Hz (100 MHz)
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
   tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
@@ -23,34 +23,34 @@ project:
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: "i1"
-  ui[1]: "i2"
-  ui[2]: "i3"
-  ui[3]: "i4"
-  ui[4]: "i5"
-  ui[5]: "i6"
-  ui[6]: "i7"
-  ui[7]: "i8"
+  ui[0]: "LOAD"           # Synchronous load enable signal
+  ui[1]: "OUTPUT_EN"      # Tri-state output enable signal
+  ui[2]: ""               # Unused
+  ui[3]: ""               # Unused
+  ui[4]: ""               # Unused
+  ui[5]: ""               # Unused
+  ui[6]: ""               # Unused
+  ui[7]: ""               # Unused
 
   # Outputs
-  uo[0]: "o1"
-  uo[1]: "o2"
-  uo[2]: "o3"
-  uo[3]: "o4"
-  uo[4]: "o5"
-  uo[5]: "o6"
-  uo[6]: "o7"
-  uo[7]: "o8"
+  uo[0]: "COUNT_OUT[0]"   # Counter output bit 0 (LSB)
+  uo[1]: "COUNT_OUT[1]"   # Counter output bit 1
+  uo[2]: "COUNT_OUT[2]"   # Counter output bit 2
+  uo[3]: "COUNT_OUT[3]"   # Counter output bit 3
+  uo[4]: "COUNT_OUT[4]"   # Counter output bit 4
+  uo[5]: "COUNT_OUT[5]"   # Counter output bit 5
+  uo[6]: "COUNT_OUT[6]"   # Counter output bit 6
+  uo[7]: "COUNT_OUT[7]"   # Counter output bit 7 (MSB)
 
-  # Bidirectional pins
-  uio[0]: "io1"
-  uio[1]: "io2"
-  uio[2]: "io3"
-  uio[3]: "io4"
-  uio[4]: "io5"
-  uio[5]: "io6"
-  uio[6]: "io7"
-  uio[7]: "io8"
+  # Bidirectional pins (used as inputs for load value)
+  uio[0]: "LOAD_VAL[0]"   # Load value bit 0 (LSB)
+  uio[1]: "LOAD_VAL[1]"   # Load value bit 1
+  uio[2]: "LOAD_VAL[2]"   # Load value bit 2
+  uio[3]: "LOAD_VAL[3]"   # Load value bit 3
+  uio[4]: "LOAD_VAL[4]"   # Load value bit 4
+  uio[5]: "LOAD_VAL[5]"   # Load value bit 5
+  uio[6]: "LOAD_VAL[6]"   # Load value bit 6
+  uio[7]: "LOAD_VAL[7]"   # Load value bit 7 (MSB)
 
 # Do not change!
 yaml_version: 6
