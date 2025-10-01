@@ -53,23 +53,14 @@ module tb ();
       .rst_n  (rst_n)     // not reset (active low)
   );
 
-  // Optional: Simple Verilog testbench for basic functionality
+  // Initialize signals for simulation
+  // Cocotb will drive these, but they need initial values to avoid X states
   initial begin
-    // Initialize signals
     clk = 0;
-    rst_n = 1;
-    ena = 1;
-    ui_in = 8'h02;  // output_enable = 1, load = 0
-    uio_in = 8'h00;
-    
-    // Generate clock
-    forever #5 clk = ~clk;  // 10ns period (100MHz)
-  end
-
-  // Monitor for debugging
-  initial begin
-    $monitor("Time=%0t rst_n=%b load=%b output_enable=%b load_value=0x%02h counter_out=0x%02h", 
-             $time, rst_n, load, output_enable, load_value, counter_out);
+    rst_n = 0;
+    ena = 0;
+    ui_in = 0;
+    uio_in = 0;
   end
 
 endmodule
