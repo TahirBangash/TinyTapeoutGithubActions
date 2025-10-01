@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles, ReadOnly
+from cocotb.triggers import ClockCycles, ReadOnly, Timer
 
 
 @cocotb.test()
@@ -26,6 +26,7 @@ async def test_8bit_counter(dut):
     await ClockCycles(dut.clk, 2)
     dut.rst_n.value = 1  # Release reset
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()  # Wait for all signal updates to complete
     
     # Counter should start at 1 after first clock cycle post-reset
@@ -36,6 +37,7 @@ async def test_8bit_counter(dut):
     dut._log.info("Test 2: Basic counting")
     for expected_value in range(2, 10):
         await ClockCycles(dut.clk, 1)
+        await Timer(1, units="ns")  # Allow gate delays to settle
         await ReadOnly()
         assert dut.uo_out.value == expected_value, f"Expected {expected_value}, got {dut.uo_out.value}"
     dut._log.info("Basic counting test passed")
@@ -47,6 +49,7 @@ async def test_8bit_counter(dut):
     dut.uio_in.value = load_value  # Set load value
     dut.ui_in.value = 0b00000011   # output_enable=1, load=1
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == load_value, f"Expected {load_value}, got {dut.uo_out.value}"
     
@@ -54,6 +57,7 @@ async def test_8bit_counter(dut):
     await ClockCycles(dut.clk, 1)  # Exit read-only phase (load still asserted, so stays at load_value)
     dut.ui_in.value = 0b00000010   # output_enable=1, load=0
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == (load_value + 1) & 0xFF, f"Expected {(load_value + 1) & 0xFF}, got {dut.uo_out.value}"
     dut._log.info("Load functionality test passed")
@@ -78,6 +82,7 @@ async def test_8bit_counter(dut):
     dut.uio_in.value = 0xFF
     dut.ui_in.value = 0b00000011   # output_enable=1, load=1
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == 0xFF, f"Expected 0xFF, got {dut.uo_out.value}"
     
@@ -85,10 +90,12 @@ async def test_8bit_counter(dut):
     await ClockCycles(dut.clk, 1)  # Exit read-only phase
     dut.ui_in.value = 0b00000010   # output_enable=1, load=0
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == 0x00, f"Expected 0x00 (wrap-around), got {dut.uo_out.value}"
     
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == 0x01, f"Expected 0x01 (after wrap), got {dut.uo_out.value}"
     dut._log.info("Wrap-around test passed")
@@ -97,6 +104,7 @@ async def test_8bit_counter(dut):
     dut._log.info("Test 6: Reset during operation")
     # Let counter run to some value
     await ClockCycles(dut.clk, 5)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     current_value = int(dut.uo_out.value)
     assert current_value > 1, "Counter should be running"
@@ -107,6 +115,7 @@ async def test_8bit_counter(dut):
     await ClockCycles(dut.clk, 1)
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == 1, f"Expected 1 after reset, got {dut.uo_out.value}"
     dut._log.info("Reset during operation test passed")
@@ -140,6 +149,7 @@ async def test_edge_cases(dut):
     await ClockCycles(dut.clk, 1)
     dut.rst_n.value = 1            # Release reset
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     # After reset release with load still asserted, should load the value
     assert dut.uo_out.value == 0x88, f"Expected 0x88 after reset+load, got {dut.uo_out.value}"
@@ -172,6 +182,7 @@ async def test_load_timing(dut):
     dut.uio_in.value = 0x33
     dut.ui_in.value = 0b00000011   # Assert load
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == 0x33, f"Expected 0x33, got {dut.uo_out.value}"
     
@@ -179,6 +190,7 @@ async def test_load_timing(dut):
     await ClockCycles(dut.clk, 1)  # Exit read-only phase
     dut.ui_in.value = 0b00000010   # output_enable=1, load=0
     await ClockCycles(dut.clk, 1)
+    await Timer(1, units="ns")  # Allow gate delays to settle
     await ReadOnly()
     assert dut.uo_out.value == 0x34, f"Expected 0x34, got {dut.uo_out.value}"
 
